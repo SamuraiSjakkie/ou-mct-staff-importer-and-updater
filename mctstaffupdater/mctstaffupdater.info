@@ -1,0 +1,6 @@
+name = MCT Staff Updater2
+description = This will create all new staff from the feed at 23:00 and will also update the existing staff pages using cron at 01:00.
+package = Jacques - Content Types
+version = VERSION
+core = 7.x
+files[] = mctstaffupdater.module

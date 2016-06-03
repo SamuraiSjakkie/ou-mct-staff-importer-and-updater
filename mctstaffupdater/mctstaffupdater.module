@@ -1,0 +1,1215 @@
+<?php 
+				/******************************************/
+				/********Create holder variables***********/
+				/******************************************/
+						$FirstnameHolder = '';
+						$SurnameHolder = '';
+						$PrefixHolder = '';
+						$PostfixHolder = '';
+						$FullNameHolder = '';
+						$UNIDHolder = '';
+						$ShortURLHolder = '';
+						$EmailHolder = '';
+						$OUCUHolder ='';
+						$imageHolder = '';
+						$SquareImageHolder = '';
+
+						$BodyHolder = '';
+						$ResearchHolder = '';
+						$TeachingHolder = '';
+			
+						$PACounter = 0;
+						$PAArray = array();
+				
+						$DepartmentHolder = '';
+						$PositionHolder = '';
+						$RoleHolder = '';
+		
+						$SkypeAccount = '';
+						$PersonalContact = '';
+
+						$PersonalSiteURL = '';
+						$PersonalBlogURL = '';
+						$PersonalFeedURL = '';
+
+						$PersonalTwitter = '';
+						$PersonalLinkedIn = '';
+						$PersonalFacebook = '';
+						$PersonalGooglePlus = '';
+						$PersonalYouTube = '';
+						$PersonalVimeo = '';
+						$PersonalSlideShare = '';
+		
+						$editedHolder = '';
+						
+						$ShowEMail = '';
+						$ShowORO = '';
+						$ShowTel = '';	
+						$date = '';
+						
+					function setVariableToBlank(){
+						$FirstnameHolder = '';
+						$SurnameHolder = '';
+						$PrefixHolder = '';
+						$PostfixHolder = '';
+						$FullNameHolder = '';
+						$UNIDHolder = '';
+						$ShortURLHolder = '';
+						$EmailHolder = '';
+						$OUCUHolder ='';
+						$imageHolder = '';
+						$SquareImageHolder = '';
+
+						$BodyHolder = '';
+						$ResearchHolder = '';
+						$TeachingHolder = '';
+			
+						$PACounter = 0;
+						$PAArray = array();
+				
+						$DepartmentHolder = '';
+						$PositionHolder = '';
+						$RoleHolder = '';
+		
+						$SkypeAccount = '';
+						$PersonalContact = '';
+
+						$PersonalSiteURL = '';
+						$PersonalBlogURL = '';
+						$PersonalFeedURL = '';
+
+						$PersonalTwitter = '';
+						$PersonalLinkedIn = '';
+						$PersonalFacebook = '';
+						$PersonalGooglePlus = '';
+						$PersonalYouTube = '';
+						$PersonalVimeo = '';
+						$PersonalSlideShare = '';
+		
+						$editedHolder = '';
+
+						$ShowEMail = '';
+						$ShowORO = '';
+						$ShowTel = '';
+
+						$date = '';
+					}						
+				/******************************************/
+				/**********All Variables Created***********/
+				/******************************************/		
+
+				
+/******************************************************************************
+*  Strip Tags
+*******************************************************************************
+*$str = string to check
+*$tags = tag to remove
+*$stripContent = remove the content between the tags or not (true or false)
+******************************************************************************/
+
+function strip_only2($str, $tags, $stripContent) {
+    $content = '';
+    if(!is_array($tags)) {
+        $tags = (strpos($str, '>') !== false ? explode('>', str_replace('<', '', $tags)) : array($tags));
+        if(end($tags) == '') array_pop($tags);
+    }
+    foreach($tags as $tag) {
+        if ($stripContent)
+             $content = '(.+</'.$tag.'[^>]*>|)';
+         $str = preg_replace('#</?'.$tag.'[^>]*>'.$content.'#is', '', $str);
+    }
+    return $str;
+}
+
+
+/******************************************************************************
+*  Clean Body Text
+*******************************************************************************
+*$BodyString = a String that removes certain items from HTML tags. 
+******************************************************************************/
+
+function CleanBodyText2($BodyString){
+	
+	try
+		{
+			/*$OutputString = preg_replace('/(<br\s*\/?>\s*)+/','', $BodyString);*/
+			/*$OutputString = preg_replace('/(<br\s*\/?>\s*[!<br>])+/uUm','', $BodyString);*/
+		
+			$OutputString = $BodyString;
+			$OutputString = preg_replace('/(<[^>]+) face=".*?"/i', '$1', $OutputString);
+			$OutputString =  preg_replace('/(<[^>]+) size=".*?"/i', '$1', $OutputString);
+			$OutputString = preg_replace('/<p[^>]*>[\s|&nbsp;]*<\/p>/', '$1', $OutputString);
+			$OutputString = preg_replace('/<font[^>]*>[\s|&nbsp;]*<\/font>/', '$1', $OutputString);
+			$OutputString = strip_only2($OutputString, 'script', true);
+
+			return $OutputString;
+		}
+	catch(Exception $e)
+		{
+
+		}
+}
+
+
+
+function mctstaffupdater_cron(){
+	if(variable_get('mctstaffupdater_xmlurl', '') != ""){
+
+			if(date("H") == sprintf("%02s",variable_get('mctstaffupdater_time', '')))  { 
+				/***********************************/
+				/*****Create Nodes from scratch*****/
+				/***********************************/ 	
+				manually_create_staff();
+			}
+
+
+			if(date("H") == sprintf("%02s",variable_get('mctstaffupdater_time', '')+1) )  { 	
+			 	/***********************************/
+				/*******Update existing Nodes*******/
+				/***********************************/ 	
+					manual_staff_updater();
+			}
+			if(date("H") == sprintf("%02s",variable_get('mctstaffupdater_time', '')+2) )  { 	
+			 	/*************************************************************/
+				/*******Delete nodes that do not appear in the XML Feed*******/
+				/*************************************************************/ 	
+					deleteStaff();
+			}
+			if(date("H") == sprintf("%02s",variable_get('mctstaffupdater_time', '')+3) )  { 	
+			 	/***********************************/
+				/*********Flush Views Cache*********/
+				/***********************************/ 	
+					drupal_flush_all_caches();
+					drupal_set_message('cache flushed. Run at: '.variable_get('mctstaffupdater_time', '')+3 );
+			}
+
+
+
+
+	}
+ 
+}/*closing - function test_cron()*/
+
+
+
+
+
+
+
+/**************************************************************/
+/*********************Menu structure***************************/
+/**************************************************************/
+function mctstaffupdater_menu() {
+  $items = array();
+	
+  /*$items['admin/settings/mct'] = array(
+    'title' => 'MCT Tools',
+    'description' => 'Configure the MCT Staff Updater for this site.',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('mctstaffupdater_admin'),
+    'access arguments' => array('administer mctstaffupdater settings'),
+    'type' => MENU_NORMAL_ITEM,
+   );
+*/
+
+  $items['admin/settings/mct'] = array(
+    'title' => 'MCT Tools',
+	'description' => 'List of MCT Tools',
+    'position' => 'right',
+    'weight' => -4,
+   'page callback' => 'system_admin_menu_block_page',
+   'access arguments' => array('administer site configuration'),
+    'file' => 'system.admin.inc',
+    'file path' => drupal_get_path('module', 'system'),
+    'type' => MENU_NORMAL_ITEM
+  );
+
+
+
+  $items['admin/settings/mct/staffupdater'] = array(
+    'title' => 'MCT Staff Updater',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('mctstaffupdater_admin'),
+    'access arguments' => array('settings administration pages'),
+    'type' => MENU_LOCAL_TASK,
+    'weight' => 10,
+  );
+  $items['admin/settings/mct/staffupdater/settings'] = array(
+    'title' => 'Settings',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('mctstaffupdater_admin'),
+    'access arguments' => array('settings administration pages'),
+    'type' => MENU_LOCAL_TASK,
+    'weight' => 1,
+  );
+  $items['admin/settings/mct/staffupdater/newstaff'] = array(
+    'title' => 'Check for new Staff',
+	'description' => 'This will check for new staff to be created',
+    'page callback' => 'manually_create_staff',
+    //'page arguments' => array('manually_create_staff'),
+    'access arguments' => array('settings administration pages'),
+    'type' => MENU_LOCAL_TASK,
+    'weight' => 10,
+  );
+  $items['admin/settings/mct/staffupdater/updatestaff'] = array(
+    'title' => 'Check for staff updates',
+	'description' => 'This will check if updates are required',
+    'page callback' => 'manual_staff_updater',
+    //'page arguments' => array('mctstaffupdater_updatestaff'),
+    'access arguments' => array('settings administration pages'),
+    'type' => MENU_LOCAL_TASK,
+    'weight' => 11,
+  );
+  $items['admin/settings/mct/staffupdater/deletestaff'] = array(
+    'title' => 'Delete Staff',
+	'description' => 'This will delete staff who are not in the XML Feed - ' . variable_get('mctstaffupdater_xmlurl', ''),
+    'page callback' => 'deleteStaff',
+    //'page arguments' => array('mctstaffupdater_updatestaff'),
+    'access arguments' => array('settings administration pages'),
+    'type' => MENU_LOCAL_TASK,
+    'weight' => 11,
+  );
+
+  $items['admin/settings/mct/staffupdater/updatestaff11'] = array(
+      'page callback' => 'manually_create_staff',
+    );
+	
+
+  return $items;
+}
+
+
+
+
+function mctstaffupdater_admin() {
+  $form = array();
+  $form['mctstaffupdater_xmlurl'] = array(
+    '#type' => 'textfield',
+    '#title' => t('URL for the Staff list XML'),
+    '#default_value' => variable_get('mctstaffupdater_xmlurl', ''),
+    '#size' => 100,
+    '#maxlength' => 200,
+    '#description' => t("The URL that contains the staff list for this site."),
+    '#required' => TRUE,
+  );
+  $form['mctstaffupdater_time'] = array(
+    '#type' => 'select',
+    '#title' => t('When should the import be run?'),
+    '#default_value' => variable_get('mctstaffupdater_time', ''),
+       '#options' => array(
+	'00' => t('Midnight'),
+       '01' => t('1 AM'),
+	'02' => t('2 AM'),
+	'03' => t('3 AM'),
+	'04' => t('4 AM'),
+	'05' => t('5 AM'),
+	'06' => t('6 AM'),
+	'07' => t('7 AM'),
+	'08' => t('8 AM'),
+	'09' => t('9 AM'),
+	'10' => t('10 AM'),
+       ),
+    '#description' => t("This will use cron to import the new staff and then update."),
+    '#required' => TRUE,
+  );
+  return system_settings_form($form);
+}
+
+
+
+
+
+/**********************************/
+/******Run Commands****************/
+
+function mctstaffupdater_createnew(){
+  $form['values'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Manually update staff pages'),
+    '#value' => t('Manually create staff pages from: <b>' . variable_get('mctstaffupdater_xmlurl', '') . '</b>'),
+    '#collapsible' => FALSE,
+    '#collapsed' => FALSE,
+'#suffix' => '<br><br>',
+
+  );
+
+	$form['values']['mctstaffupdater_createnewstaff'] = array(
+		'#type' =>'button', 
+		'#value' => t('Manually create new staff pages'),
+		'#description' => t("This will allow you to manually create the staff pages which are imported from: "), 
+		'#weight' => 19,
+
+	);
+  return system_settings_form($form);
+}
+
+function mctstaffupdater_updatestaff(){
+	 
+  $form['values'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Manually update staff pages'),
+    '#value' => t('Manually update staff pages from: <b>' . variable_get('mctstaffupdater_xmlurl', '') . '</b>'),
+    '#collapsible' => FALSE,
+    '#collapsed' => FALSE,
+'#suffix' => '<br><br>',
+
+  );
+
+	$form['values']['mctstaffupdater_updatestaff'] = array(
+		'#type' =>'submit',
+ 		'#value' => t('Manually update staff pages'),
+		'#weight' => 200,
+		'#submit' => array('mctstaffupdater_form_submit','test_hi')
+	);
+  return system_settings_form($form);
+
+
+
+}
+
+
+
+
+
+
+/**************************************************************************************/
+/****************************  CREATE AND UPDATE NEW STAFF ****************************/
+/**************************************************************************************/
+
+function manually_create_staff(){
+		$creationoutput = "Creating Staff pages from: " . variable_get('mctstaffupdater_xmlurl', '') . ". Normally run at " . sprintf("%02s",variable_get('mctstaffupdater_time', '')+1);
+		$type = "staff_page"; // machine name for Basic Page
+		$nodes = node_load_multiple(array(), array('type' => $type)); 
+		$counter = 0;
+		$sxe2 = simplexml_load_file(variable_get('mctstaffupdater_xmlurl', ''));
+			
+		$xmlArray = array();
+		$xmlArray2 = array();
+		$nodeArray = array();
+		$nodeArray2 = array();	
+
+			foreach($sxe2->xpath('//xml/OUData/Staff/Member') as $item) {
+				array_push($xmlArray, array($item->oucu,$item->UNID, $item->URL_Key, (string)$item->LastUpdate));
+			}
+
+			foreach($sxe2->xpath('//xml/OUData/Staff/Member') as $item) {
+				array_push($xmlArray2, $item->oucu);
+			}
+
+			foreach($nodes as $node){
+				$jack = array($node->title, $node->nid);
+				array_push($nodeArray, $jack);
+			}
+			foreach($nodes as $node){
+				array_push($nodeArray2, $node->title);
+			}
+							
+				foreach($nodeArray as $deleteStaff){
+					//print $deleteStaff[0] .  " - " . $deleteStaff[1];
+					//print'<br>';
+				}
+	
+			$newNodeCreated = false;
+
+			foreach($xmlArray as $createStaff){
+					//print $createStaff[0];
+				if(in_array($createStaff[0], $nodeArray2 )){
+					//print 'oucu found ' . $createStaff[0];
+					//print'<br>';
+				}else{
+					if($createStaff[0] != ""){
+						$creationoutput = $creationoutput . '<b>Cannot find ' . $createStaff[0]  .' - Creating </b>' . $createStaff[0] . ' - ' .$createStaff[1] . '<br>';
+					}
+					
+							//creating a bare node
+							$NewNode = new StdClass();
+
+							//giving it type
+							$NewNode->type = 'staff_page';
+
+							//Setting language and giving it a published status				
+							$NewNode->language = 'und';
+							$NewNode->status = 1;	
+
+							//gives title
+							$NewNode->title = $createStaff[0];
+
+							//gives body
+							$NewNode->body = "";
+
+							//setting the OUCU field, the UNID, and the Short URL which is used as the URL Parameter.
+							$NewNode->field_oucu['und'][0]['value'] = $createStaff[0];
+							$NewNode->field_unid['und'][0]['value'] = $createStaff[1];
+							$NewNode->field_short_url['und'][0]['value'] = $createStaff[2];						
+							
+    							//$NewNode->log = "Created with cron job (in module) - " . date("F j, Y, g:i a");
+								node_save($NewNode);
+								//updateNode($NewNode->nid,  "creation", $createStaff[3]);
+								create_new_staff_updater($NewNode->nid);
+								//$newNodeCreated = true;
+							
+							//save it and give it the rest of the attributes
+							
+					
+				} /*Closing the bracket for - if(in_array($createStaff[0], $nodeArray2 )) */
+
+				
+			} /*Closin the bracket for - foreach($xmlArray as $createStaff) */
+			
+		//UpdateAllStaffNodes();
+		if($newNodeCreated){
+			
+		}
+		
+		$creationoutput = $creationoutput .'<br><br><br><br><a href="' . $GLOBALS['base_path'] . '">Go Back</a><br><br>Please be patient while we flush the caches!';
+		print $creationoutput;
+		//drupal_flush_all_caches();
+		cache_clear_all(null, 'cache_views');
+		drupal_set_message('cache flushed. - after Creating new');
+}
+
+
+function create_new_staff_updater($test){
+		$node = node_load($test);
+		
+			
+			$file = 'http://mct.open.ac.uk/PublicWeb/Macunames.nsf/PersonXML.xsp?UNID=' . trim($node->field_unid['und'][0]['value']);
+			
+			
+			/***Test if there is a response from the XML feed. ***/
+			$file_headers = @get_headers($file);
+			
+			if (preg_match('#^HTTP/... 2..#', $file_headers[0])){	
+					/**Loop through the XML and assign to the variables**/
+					$xml = simplexml_load_file($file);
+					foreach($xml->xpath('//xml/OUData/Staff/Member') as $item) {
+						setVariableToBlank();
+						$FirstnameHolder = $item->FirstName;
+						$SurnameHolder = $item->Surname;
+						$PrefixHolder = $item->Title;
+						$FullNameHolder = $PrefixHolder . ' ' .$FirstnameHolder . ' ' . $SurnameHolder;
+						$UNIDHolder = $item->UNID;
+						$ShortURLHolder = $item->URL_Key;
+
+						$EmailHolder = $item->Email;
+						$OUCUHolder = $item->OUCU;
+						$imageHolder = $item->Image;
+						$SquareImageHolder = $item->SquarePhotoURL;
+						
+						$BodyHolder = CleanBodyText2($item->Biography);
+						$ResearchHolder = CleanBodyText2($item->Research);
+						$TeachingHolder = CleanBodyText2($item->Teaching);
+						$PACounter = 0;
+						foreach($item->PrimaryAffiliations->PrimaryAffiliation as $PA){
+							if($PA != ''){
+								$PACounter = $PACounter+1;
+								array_push($PAArray, (string)$PA);
+							}
+						} /*closing bracket for - foreach($item->PrimaryAffiliations->PrimaryAffiliation as $PA)*/
+													
+						$DepartmentHolder = $item->Department;
+						$PositionHolder = $item->Position;
+						$RoleHolder = $item->Role;
+					
+						$SkypeAccount = $item->PersonalContact->PersonalContactSkype;
+						$PersonalContact = $item->PersonalContact->InternalTelephone;
+
+						$PersonalSiteURL = $item->PersonalSites->PersonalSiteURL;
+						$PersonalBlogURL = $item->PersonalSites->PersonalBlogURL;
+						$PersonalFeedURL = $item->PersonalSites->PersonalFeedURL;
+				
+						$PersonalTwitter = $item->SocialSites->TwitteAccount;
+						$PersonalLinkedIn = $item->SocialSites->LinkedInAccount;
+						$PersonalFacebook = $item->SocialSites->FacebookAccount;
+						$PersonalGooglePlus = $item->SocialSites->GooglePlusAccount;
+						$PersonalYouTube = $item->SocialSites->YouTubeAccount;
+						$PersonalVimeo = $item->SocialSites->VimeoAccount;
+						$PersonalSlideShare = $item->SocialSites->SlideShareAccount;
+		
+						$editedHolder = $item->YouPageLastEditedAt;
+						
+						/*****Personal Settings for site*****/
+							$ShowEMail = $item->SiteSettings->ShowEmail;
+							$ShowORO = $item->SiteSettings->ShowORO;
+							$ShowTel = $item->SiteSettings->ShowTel;
+						/************************************/
+					
+					
+										/************************************************************/
+										/*************Start Adding the content to the Node***********/
+										/************************************************************/
+								
+										if(!isset($node->field_firstname['und'][0]['value'])){
+											$node->field_firstname['und'][0]['value'] = $FirstnameHolder;
+										}elseif($node->field_firstname['und'][0]['value'] != $FirstnameHolder){
+											$node->field_firstname['und'][0]['value'] = $FirstnameHolder;
+										}
+					
+										if(!isset($node->field_surname['und'][0]['value'])){
+											$node->field_surname['und'][0]['value'] = $SurnameHolder;
+										}elseif($node->field_surname['und'][0]['value'] != $SurnameHolder){
+											$node->field_surname['und'][0]['value'] = $SurnameHolder;
+										}
+					
+										if(!isset($node->field_full_name['und'][0]['value'])){
+											$node->field_full_name['und'][0]['value'] = $FullNameHolder;
+										}elseif($node->field_full_name['und'][0]['value'] != $FullNameHolder){
+											$node->field_full_name['und'][0]['value'] = $FullNameHolder;
+										}
+					
+										if(!isset($node->field_short_url['und'][0]['value'])){
+											$node->field_short_url['und'][0]['value'] = $ShortURLHolder;
+										}elseif($node->field_short_url['und'][0]['value'] != $ShortURLHolder){
+											$node->field_short_url['und'][0]['value'] = $ShortURLHolder;
+										}
+
+										if(!isset($node->field_email_address['und'][0]['email'])){
+											$node->field_email_address['und'][0]['email'] = $EmailHolder;
+										}elseif($node->field_email_address['und'][0]['email'] != $EmailHolder){
+											$node->field_email_address['und'][0]['email'] = $EmailHolder;
+										}
+
+										if(!isset($node->field_oucu['und'][0]['value'])){
+											$node->field_oucu['und'][0]['value'] = $OUCUHolder;
+										}elseif($node->field_oucu['und'][0]['value'] != $OUCUHolder){
+											$node->field_oucu['und'][0]['value'] = $OUCUHolder;
+										}
+					
+										if(!isset($node->field_small_image_location['und'][0]['value'])){
+											$node->field_small_image_location['und'][0]['value'] = $imageHolder;
+										}elseif($node->field_small_image_location['und'][0]['value'] != $imageHolder){
+											$node->field_small_image_location['und'][0]['value'] = $imageHolder;
+										}
+
+										if(!isset($node->field_large_image_location['und'][0]['value'])){
+											$node->field_large_image_location['und'][0]['value'] = $SquareImageHolder;
+										}elseif($node->field_large_image_location['und'][0]['value'] != $SquareImageHolder){
+											$node->field_large_image_location['und'][0]['value'] = $SquareImageHolder;
+										}
+
+										/*****Setting the Bio, Research and Teaching for this person*****/
+										if(!isset($node->body['und'][0]['value'])){
+											$node->body['und'][0]['value'] = $BodyHolder;
+											$node->body['und'][0]['format'] = "full_html";
+											//($BodyHolder, 'und', $node->body['und'][0]['value'], 'value');
+										}elseif ($node->body['und'][0]['value'] != $BodyHolder){
+											$node->body['und'][0]['value'] = $BodyHolder;
+											$node->body['und'][0]['format'] = "full_html";
+											//_text_sanitize($BodyHolder, 'und', $node->body['und'][0]['value'], 'value');
+										}
+
+										if (!isset($node->field_research['und'][0]['value'])){
+											$node->field_research['und'][0]['value'] = $ResearchHolder;
+											$node->field_research['und'][0]['format'] = "full_html";
+											//_text_sanitize($ResearchHolder, 'und', $node->field_research['und'][0]['value'], 'value');
+										}elseif ($node->field_research['und'][0]['value'] != $ResearchHolder){
+											$node->field_research['und'][0]['value'] = $ResearchHolder;
+											$node->field_research['und'][0]['format'] = "full_html";
+											//_text_sanitize($ResearchHolder, 'und', $node->field_research['und'][0]['value'], 'value');
+										}
+
+										if (!isset($node->field_teaching['und'][0]['value'])){
+											$node->field_teaching['und'][0]['value'] = $TeachingHolder;
+											$node->field_teaching['und'][0]['format'] = "full_html";
+											//_text_sanitize($TeachingHolder, 'und', $node->field_teaching['und'][0]['value'], 'value');
+										}elseif($node->field_teaching['und'][0]['value'] != $TeachingHolder){
+											$node->field_teaching['und'][0]['value'] = $TeachingHolder;
+											$node->field_teaching['und'][0]['format'] = "full_html";
+											//_text_sanitize($TeachingHolder, 'und', $node->field_teaching['und'][0]['value'], 'value');
+										}
+
+										/*****Setting the Primary Affiliations*****/
+										if($PACounter != 0){	
+											for ($x=0; $x<$PACounter; $x++){
+												if(!isset($node->field_primary_affiliations['und'][$x]['value'])){
+													$node->field_primary_affiliations['und'][$x]['value'] = $PAArray[$x];
+												}elseif($node->field_primary_affiliations['und'][$x]['value'] != $PAArray[$x]){
+													$node->field_primary_affiliations['und'][$x]['value'] = $PAArray[$x];
+												}
+											}
+										}
+										
+										if(!isset($node->field_department['und'][0]['value'])){
+											$node->field_department['und'][0]['value'] = $DepartmentHolder;
+										}elseif($node->field_department['und'][0]['value'] != $DepartmentHolder){
+											$node->field_department['und'][0]['value'] = $DepartmentHolder;
+										}
+
+										if(!isset($node->field_position['und'][0]['value'])){
+											$node->field_position['und'][0]['value'] = $PositionHolder;
+										}elseif($node->field_position['und'][0]['value'] != $PositionHolder){
+											$node->field_position['und'][0]['value'] = $PositionHolder;
+										}
+
+										if(!isset($node->field_role['und'][0]['value'])){
+											$node->field_role['und'][0]['value'] = $RoleHolder;
+										}elseif($node->field_role['und'][0]['value'] != $RoleHolder){
+											$node->field_role['und'][0]['value'] = $RoleHolder;
+										}
+
+
+										if(!isset($node->field_skypeaccount['und'][0]['value'])){
+											$node->field_skypeaccount['und'][0]['value'] = $SkypeAccount;
+										}elseif($node->field_skypeaccount['und'][0]['value'] != $SkypeAccount){
+											$node->field_skypeaccount['und'][0]['value'] = $SkypeAccount;
+										}
+
+										if(!isset($node->field_external_telephone_number['und'][0]['value'])){
+											$node->field_external_telephone_number['und'][0]['value'] = $PersonalContact;
+										}elseif($node->field_external_telephone_number['und'][0]['value'] != $PersonalContact){
+											$node->field_external_telephone_number['und'][0]['value'] = $PersonalContact;
+										}
+
+										/****Personalsites****/
+										if(!isset($node->field_personalsiteurl['und'][0]['value'])){
+											$node->field_personalsiteurl['und'][0]['value'] = $PersonalSiteURL;
+										}elseif($node->field_personalsiteurl['und'][0]['value'] != $PersonalSiteURL){
+											$node->field_personalsiteurl['und'][0]['value'] = $PersonalSiteURL;
+										}
+
+
+										if (!isset($node->field_personalblogurl['und'][0]['value'])){
+											$node->field_personalblogurl['und'][0]['value'] = $PersonalBlogURL;
+										}elseif($node->field_personalblogurl['und'][0]['value'] != $PersonalBlogURL){
+											$node->field_personalblogurl['und'][0]['value'] = $PersonalBlogURL;
+										}
+
+										if(!isset($node->field_personalfeedurl['und'][0]['value'])){
+											$node->field_personalfeedurl['und'][0]['value'] = $PersonalFeedURL;
+										}elseif($node->field_personalfeedurl['und'][0]['value'] != $PersonalFeedURL){
+											$node->field_personalfeedurl['und'][0]['value'] = $PersonalFeedURL;
+										}
+										/****Personalsites****/
+										if(!isset($node->field_personalsiteurl['und'][0]['value'])){
+											$node->field_personalsiteurl['und'][0]['value'] = $PersonalSiteURL;
+										}elseif($node->field_personalsiteurl['und'][0]['value'] != $PersonalSiteURL){
+											$node->field_personalsiteurl['und'][0]['value'] = $PersonalSiteURL;
+										}
+
+
+										if (!isset($node->field_personalblogurl['und'][0]['value'])){
+											$node->field_personalblogurl['und'][0]['value'] = $PersonalBlogURL;
+										}elseif($node->field_personalblogurl['und'][0]['value'] != $PersonalBlogURL){
+											$node->field_personalblogurl['und'][0]['value'] = $PersonalBlogURL;
+										}
+
+										if(!isset($node->field_personalfeedurl['und'][0]['value'])){
+											$node->field_personalfeedurl['und'][0]['value'] = $PersonalFeedURL;
+										}elseif($node->field_personalfeedurl['und'][0]['value'] != $PersonalFeedURL){
+											$node->field_personalfeedurl['und'][0]['value'] = $PersonalFeedURL;
+										}
+
+
+
+										/****Socialsites****/
+										if(!isset($node->field_twitter_account['und'][0]['value'])){
+											$node->field_twitter_account['und'][0]['value'] = $PersonalTwitter;
+										}elseif ($node->field_twitter_account['und'][0]['value'] != $PersonalTwitter){
+											$node->field_twitter_account['und'][0]['value'] = $PersonalTwitter;
+										}
+					
+										if(!isset($node->field_linkedin_account['und'][0]['value'])){
+											$node->field_linkedin_account['und'][0]['value'] = $PersonalLinkedIn;
+										}elseif ($node->field_linkedin_account['und'][0]['value'] != $PersonalLinkedIn){
+											$node->field_linkedin_account['und'][0]['value'] = $PersonalLinkedIn;
+										}
+
+										if(!isset($node->field_facebook_account['und'][0]['value'])){
+											$node->field_facebook_account['und'][0]['value'] = $PersonalFacebook;
+										}elseif ($node->field_facebook_account['und'][0]['value'] != $PersonalFacebook){
+											$node->field_facebook_account['und'][0]['value'] = $PersonalFacebook;
+										}
+
+										if(!isset($node->field_goolge_account['und'][0]['value'])){
+											$node->field_goolge_account['und'][0]['value'] = $PersonalGooglePlus;
+										}elseif ($node->field_goolge_account['und'][0]['value'] != $PersonalGooglePlus){
+											$node->field_goolge_account['und'][0]['value'] = $PersonalGooglePlus;
+										}
+
+										if(!isset($node->field_youtube_account['und'][0]['value'])){
+											$node->field_youtube_account['und'][0]['value'] = $PersonalYouTube;
+										}elseif ($node->field_youtube_account['und'][0]['value'] != $PersonalYouTube){
+											$node->field_youtube_account['und'][0]['value'] = $PersonalYouTube;
+										}
+
+										if(!isset($node->field_vimeo_account['und'][0]['value'])){
+											$node->field_vimeo_account['und'][0]['value'] = $PersonalVimeo;
+										}elseif ($node->field_vimeo_account['und'][0]['value'] != $PersonalVimeo){
+											$node->field_vimeo_account['und'][0]['value'] = $PersonalVimeo;
+										}
+
+										if(!isset($node->field_slideshare_account['und'][0]['value'])){
+											$node->field_slideshare_account['und'][0]['value'] = $PersonalSlideShare;
+										}elseif ($node->field_slideshare_account['und'][0]['value'] != $PersonalSlideShare){
+											$node->field_slideshare_account['und'][0]['value'] = $PersonalSlideShare;
+										}
+
+										/******Set Personal Page Settings*****/
+										if ($ShowEMail == "Yes"){
+											$node->field_show_contact['und'][0]['value'] = "1";
+										}else{
+											$node->field_show_contact['und'][0]['value'] = "0";
+										}
+
+										if ($ShowTel == "Yes"){
+											$node->field_show_telephone['und'][0]['value'] = "1";
+										}else{
+											$node->field_show_telephone['und'][0]['value'] = "0";
+										}
+
+
+										if ($ShowORO == "ORO"){
+											$node->field_show_publications['und'][0]['value'] = "1";
+										}else{
+											$node->field_show_publications['und'][0]['value'] = "0";
+										}
+										/***************************************/
+					
+										if(!isset($node->field_last_updated_by_user['und'][0]['value'])){
+											$node->field_last_updated_by_user['und'][0]['value'] = $editedHolder;
+										}elseif($node->field_last_updated_by_user['und'][0]['value'] != $editedHolder){
+											$node->field_last_updated_by_user['und'][0]['value'] = $editedHolder;
+										}
+
+															
+					/*Saving the node*/
+					$node->log = "Created and updated with Manual Create and Update (in module) - " . date("F j, Y, g:i a");					
+					node_save($node);
+							
+					}  /*closing bracket for - foreach($sxe->xpath('//xml/OUData/Staff/Member') as $item) */
+					
+									
+			}  /*closing bracket for - if (preg_match('#^HTTP/... 2..#', $http_response_header[0])) */
+} /*closing Bracket for the Function*/
+
+
+/**************************************************************************************/
+/*********************************  UPDATE ALL STAFF  *********************************/
+/**************************************************************************************/
+
+function manual_staff_updater(){
+		$creationoutput = "Updating Staff from: <b>" . variable_get('mctstaffupdater_xmlurl', '') . '</b><br/><br>';
+		$type = "staff_page"; // machine name for staff page
+		$nodes = node_load_multiple(array(), array('type' => $type));
+
+		$file = variable_get('mctstaffupdater_xmlurl', '');
+		$peopleArray = array();
+							
+			/***Test if there is a response from the XML feed. ***/
+		$file_headers = @get_headers($file);
+			$xml = simplexml_load_file($file);
+			
+			
+			
+			
+			if (preg_match('#^HTTP/... 2..#', $file_headers[0])){
+				
+					foreach($xml->xpath('//xml/OUData/Staff/Member') as $item) {
+						
+						array_push($peopleArray, array((string)$item->UNID,(string)$item->oucu,(string)$item->LastUpdate));
+					}	
+				
+				foreach($nodes as $node){
+					$XMLxAgent = simplexml_load_file('http://mct.open.ac.uk/PublicWeb/Macunames.nsf/PersonXML.xsp?UNID=' . trim($node->field_unid['und'][0]['value']));
+					foreach($peopleArray as $updateStaff){
+						if($node->field_unid['und'][0]['value'] == $updateStaff[0]){
+							if(!isset($node->field_macunames_date['und'][0]['value']) || $updateStaff[2] != $node->field_macunames_date['und'][0]['value']){
+								
+								foreach($XMLxAgent->xpath('//xml/OUData/Staff/Member') as $item) {
+												setVariableToBlank();
+												$date = $updateStaff[2];
+												$FirstnameHolder = $item->FirstName;
+												$SurnameHolder = $item->Surname;
+												$PrefixHolder = $item->Title;
+												$FullNameHolder = $PrefixHolder . ' ' .$FirstnameHolder . ' ' . $SurnameHolder;
+												$UNIDHolder = $item->UNID;
+												$ShortURLHolder = $item->URL_Key;
+	
+												$EmailHolder = $item->Email;
+												$OUCUHolder = $item->OUCU;
+												$imageHolder = $item->Image;
+												$SquareImageHolder = $item->SquarePhotoURL;
+										
+												$BodyHolder = CleanBodyText2($item->Biography);
+												$ResearchHolder = CleanBodyText2($item->Research);
+												$TeachingHolder = CleanBodyText2($item->Teaching);
+												
+												$PACounter = 0;
+												foreach($item->PrimaryAffiliations->PrimaryAffiliation as $PA){
+														if($PA != ''){
+															$PACounter = $PACounter +1;
+															array_push($PAArray, (string)$PA);
+														}
+												} /*closing bracket for - foreach($item->PrimaryAffiliations->PrimaryAffiliation as $PA)*/
+					
+												$DepartmentHolder = $item->Department;
+												$PositionHolder = $item->Position;
+												$RoleHolder = $item->Role;
+					
+												$SkypeAccount = $item->PersonalContact->PersonalContactSkype;
+												$PersonalContact = $item->PersonalContact->InternalTelephone;
+
+												$PersonalSiteURL = $item->PersonalSites->PersonalSiteURL;
+												$PersonalBlogURL = $item->PersonalSites->PersonalBlogURL;
+												$PersonalFeedURL = $item->PersonalSites->PersonalFeedURL;
+				
+												$PersonalTwitter = $item->SocialSites->TwitteAccount;
+												$PersonalLinkedIn = $item->SocialSites->LinkedInAccount;
+												$PersonalFacebook = $item->SocialSites->FacebookAccount;
+												$PersonalGooglePlus = $item->SocialSites->GooglePlusAccount;
+												$PersonalYouTube = $item->SocialSites->YouTubeAccount;
+												$PersonalVimeo = $item->SocialSites->VimeoAccount;
+												$PersonalSlideShare = $item->SocialSites->SlideShareAccount;
+		
+												$editedHolder = $item->YouPageLastEditedAt;
+						
+												/*****Personal Settings for site*****/
+													$ShowEMail = $item->SiteSettings->ShowEmail;
+													$ShowORO = $item->SiteSettings->ShowORO;
+													$ShowTel = $item->SiteSettings->ShowTel;
+												/************************************/
+					
+					
+										/************************************************************/
+										/*************Start Adding the content to the Node***********/
+										/************************************************************/
+										
+										//$creationoutput = $creationoutput . 'Updating ' .$OUCUHolder. ' - ' . $FullNameHolder . '<br>';
+										if(!isset($node->field_firstname['und'][0]['value'])){
+											$node->field_firstname['und'][0]['value'] = $FirstnameHolder;
+										}elseif($node->field_firstname['und'][0]['value'] != $FirstnameHolder){
+											$node->field_firstname['und'][0]['value'] = $FirstnameHolder;
+										}
+					
+										if(!isset($node->field_surname['und'][0]['value'])){
+											$node->field_surname['und'][0]['value'] = $SurnameHolder;
+										}elseif($node->field_surname['und'][0]['value'] != $SurnameHolder){
+											$node->field_surname['und'][0]['value'] = $SurnameHolder;
+										}
+					
+										if(!isset($node->field_full_name['und'][0]['value'])){
+											$node->field_full_name['und'][0]['value'] = $FullNameHolder;
+										}elseif($node->field_full_name['und'][0]['value'] != $FullNameHolder){
+											$node->field_full_name['und'][0]['value'] = $FullNameHolder;
+										}
+					
+										if(!isset($node->field_short_url['und'][0]['value'])){
+											$node->field_short_url['und'][0]['value'] = $ShortURLHolder;
+										}elseif($node->field_short_url['und'][0]['value'] != $ShortURLHolder){
+											$node->field_short_url['und'][0]['value'] = $ShortURLHolder;
+										}
+
+										if(!isset($node->field_email_address['und'][0]['email'])){
+											$node->field_email_address['und'][0]['email'] = $EmailHolder;
+										}elseif($node->field_email_address['und'][0]['email'] != $EmailHolder){
+											$node->field_email_address['und'][0]['email'] = $EmailHolder;
+										}
+
+										if(!isset($node->field_oucu['und'][0]['value'])){
+											$node->field_oucu['und'][0]['value'] = $OUCUHolder;
+										}elseif($node->field_oucu['und'][0]['value'] != $OUCUHolder){
+											$node->field_oucu['und'][0]['value'] = $OUCUHolder;
+										}
+					
+										if(!isset($node->field_small_image_location['und'][0]['value'])){
+											$node->field_small_image_location['und'][0]['value'] = $imageHolder;
+										}elseif($node->field_small_image_location['und'][0]['value'] != $imageHolder){
+											$node->field_small_image_location['und'][0]['value'] = $imageHolder;
+										}
+
+										if(!isset($node->field_large_image_location['und'][0]['value'])){
+											$node->field_large_image_location['und'][0]['value'] = $SquareImageHolder;
+										}elseif($node->field_large_image_location['und'][0]['value'] != $SquareImageHolder){
+											$node->field_large_image_location['und'][0]['value'] = $SquareImageHolder;
+										}
+
+										/*****Setting the Bio, Research and Teaching for this person*****/
+										if(!isset($node->body['und'][0]['value'])){
+											$node->body['und'][0]['value'] = $BodyHolder;
+											$node->body['und'][0]['format'] = "full_html";
+											//_text_sanitize($instance, 'und', $node->body['und'][0]['value'], 'value');
+										}elseif ($node->body['und'][0]['value'] != $BodyHolder){
+											$node->body['und'][0]['value'] = $BodyHolder;
+											$node->body['und'][0]['format'] = "full_html";
+											//_text_sanitize($instance, 'und', $node->body['und'][0]['value'], 'value');
+										}
+
+										if (!isset($node->field_research['und'][0]['value'])){
+											$node->field_research['und'][0]['value'] = $ResearchHolder;
+											$node->field_research['und'][0]['format'] = "full_html";
+											//_text_sanitize($ResearchHolder, 'und', $node->field_research['und'][0]['value'], 'value');
+										}elseif ($node->field_research['und'][0]['value'] != $ResearchHolder){
+											$node->field_research['und'][0]['value'] = $ResearchHolder;
+											$node->field_research['und'][0]['format'] = "full_html";
+											//_text_sanitize($ResearchHolder, 'und', $node->field_research['und'][0]['value'], 'value');
+										}
+
+										if (!isset($node->field_teaching['und'][0]['value'])){
+											$node->field_teaching['und'][0]['value'] = $TeachingHolder;
+											$node->field_teaching['und'][0]['format'] = "full_html";
+											//_text_sanitize($TeachingHolder, 'und', $node->field_teaching['und'][0]['value'], 'value');
+										}elseif($node->field_teaching['und'][0]['value'] != $TeachingHolder){
+											$node->field_teaching['und'][0]['value'] = $TeachingHolder;
+											$node->field_teaching['und'][0]['format'] = "full_html";
+											//_text_sanitize($TeachingHolder, 'und', $node->field_teaching['und'][0]['value'], 'value');
+										}
+
+										/*****Setting the Primary Affiliations*****/
+										if($PACounter != 0){
+											for ($x=0; $x<$PACounter; $x++){
+												if(!isset($node->field_primary_affiliations['und'][$x]['value'])){
+													$node->field_primary_affiliations['und'][$x]['value'] = $PAArray[$x];
+												}elseif($node->field_primary_affiliations['und'][$x]['value'] != $PAArray[$x]){
+													$node->field_primary_affiliations['und'][$x]['value'] = $PAArray[$x];
+												}
+											}
+										}
+										if(!isset($node->field_department['und'][0]['value'])){
+											$node->field_department['und'][0]['value'] = $DepartmentHolder;
+										}elseif($node->field_department['und'][0]['value'] != $DepartmentHolder){
+											$node->field_department['und'][0]['value'] = $DepartmentHolder;
+										}
+
+										if(!isset($node->field_position['und'][0]['value'])){
+											$node->field_position['und'][0]['value'] = $PositionHolder;
+										}elseif($node->field_position['und'][0]['value'] != $PositionHolder){
+											$node->field_position['und'][0]['value'] = $PositionHolder;
+										}
+
+										if(!isset($node->field_role['und'][0]['value'])){
+											$node->field_role['und'][0]['value'] = $RoleHolder;
+										}elseif($node->field_role['und'][0]['value'] != $RoleHolder){
+											$node->field_role['und'][0]['value'] = $RoleHolder;
+										}
+
+
+										if(!isset($node->field_skypeaccount['und'][0]['value'])){
+											$node->field_skypeaccount['und'][0]['value'] = $SkypeAccount;
+										}elseif($node->field_skypeaccount['und'][0]['value'] != $SkypeAccount){
+											$node->field_skypeaccount['und'][0]['value'] = $SkypeAccount;
+										}
+
+										if(!isset($node->field_external_telephone_number['und'][0]['value'])){
+											$node->field_external_telephone_number['und'][0]['value'] = $PersonalContact;
+										}elseif($node->field_external_telephone_number['und'][0]['value'] != $PersonalContact){
+											$node->field_external_telephone_number['und'][0]['value'] = $PersonalContact;
+										}
+
+										/****Personalsites****/
+										if(!isset($node->field_personalsiteurl['und'][0]['value'])){
+											$node->field_personalsiteurl['und'][0]['value'] = $PersonalSiteURL;
+										}elseif($node->field_personalsiteurl['und'][0]['value'] != $PersonalSiteURL){
+											$node->field_personalsiteurl['und'][0]['value'] = $PersonalSiteURL;
+										}
+
+
+										if (!isset($node->field_personalblogurl['und'][0]['value'])){
+											$node->field_personalblogurl['und'][0]['value'] = $PersonalBlogURL;
+										}elseif($node->field_personalblogurl['und'][0]['value'] != $PersonalBlogURL){
+											$node->field_personalblogurl['und'][0]['value'] = $PersonalBlogURL;
+										}
+
+										if(!isset($node->field_personalfeedurl['und'][0]['value'])){
+											$node->field_personalfeedurl['und'][0]['value'] = $PersonalFeedURL;
+										}elseif($node->field_personalfeedurl['und'][0]['value'] != $PersonalFeedURL){
+											$node->field_personalfeedurl['und'][0]['value'] = $PersonalFeedURL;
+										}
+										/****Personalsites****/
+										if(!isset($node->field_personalsiteurl['und'][0]['value'])){
+											$node->field_personalsiteurl['und'][0]['value'] = $PersonalSiteURL;
+										}elseif($node->field_personalsiteurl['und'][0]['value'] != $PersonalSiteURL){
+											$node->field_personalsiteurl['und'][0]['value'] = $PersonalSiteURL;
+										}
+
+
+										if (!isset($node->field_personalblogurl['und'][0]['value'])){
+											$node->field_personalblogurl['und'][0]['value'] = $PersonalBlogURL;
+										}elseif($node->field_personalblogurl['und'][0]['value'] != $PersonalBlogURL){
+											$node->field_personalblogurl['und'][0]['value'] = $PersonalBlogURL;
+										}
+
+										if(!isset($node->field_personalfeedurl['und'][0]['value'])){
+											$node->field_personalfeedurl['und'][0]['value'] = $PersonalFeedURL;
+										}elseif($node->field_personalfeedurl['und'][0]['value'] != $PersonalFeedURL){
+											$node->field_personalfeedurl['und'][0]['value'] = $PersonalFeedURL;
+										}
+
+
+
+										/****Socialsites****/
+										if(!isset($node->field_twitter_account['und'][0]['value'])){
+											$node->field_twitter_account['und'][0]['value'] = $PersonalTwitter;
+										}elseif ($node->field_twitter_account['und'][0]['value'] != $PersonalTwitter){
+											$node->field_twitter_account['und'][0]['value'] = $PersonalTwitter;
+										}
+					
+										if(!isset($node->field_linkedin_account['und'][0]['value'])){
+											$node->field_linkedin_account['und'][0]['value'] = $PersonalLinkedIn;
+										}elseif ($node->field_linkedin_account['und'][0]['value'] != $PersonalLinkedIn){
+											$node->field_linkedin_account['und'][0]['value'] = $PersonalLinkedIn;
+										}
+
+										if(!isset($node->field_facebook_account['und'][0]['value'])){
+											$node->field_facebook_account['und'][0]['value'] = $PersonalFacebook;
+										}elseif ($node->field_facebook_account['und'][0]['value'] != $PersonalFacebook){
+											$node->field_facebook_account['und'][0]['value'] = $PersonalFacebook;
+										}
+
+										if(!isset($node->field_goolge_account['und'][0]['value'])){
+											$node->field_goolge_account['und'][0]['value'] = $PersonalGooglePlus;
+										}elseif ($node->field_goolge_account['und'][0]['value'] != $PersonalGooglePlus){
+											$node->field_goolge_account['und'][0]['value'] = $PersonalGooglePlus;
+										}
+
+										if(!isset($node->field_youtube_account['und'][0]['value'])){
+											$node->field_youtube_account['und'][0]['value'] = $PersonalYouTube;
+										}elseif ($node->field_youtube_account['und'][0]['value'] != $PersonalYouTube){
+											$node->field_youtube_account['und'][0]['value'] = $PersonalYouTube;
+										}
+
+										if(!isset($node->field_vimeo_account['und'][0]['value'])){
+											$node->field_vimeo_account['und'][0]['value'] = $PersonalVimeo;
+										}elseif ($node->field_vimeo_account['und'][0]['value'] != $PersonalVimeo){
+											$node->field_vimeo_account['und'][0]['value'] = $PersonalVimeo;
+										}
+
+										if(!isset($node->field_slideshare_account['und'][0]['value'])){
+											$node->field_slideshare_account['und'][0]['value'] = $PersonalSlideShare;
+										}elseif ($node->field_slideshare_account['und'][0]['value'] != $PersonalSlideShare){
+											$node->field_slideshare_account['und'][0]['value'] = $PersonalSlideShare;
+										}
+
+										/******Set Personal Page Settings*****/
+										if ($ShowEMail == "Yes"){
+											$node->field_show_contact['und'][0]['value'] = "1";
+										}else{
+											$node->field_show_contact['und'][0]['value'] = "0";
+										}
+
+										if ($ShowTel == "Yes"){
+											$node->field_show_telephone['und'][0]['value'] = "1";
+										}else{
+											$node->field_show_telephone['und'][0]['value'] = "0";
+										}
+
+
+										if ($ShowORO == "ORO"){
+											$node->field_show_publications['und'][0]['value'] = "1";
+										}else{
+											$node->field_show_publications['und'][0]['value'] = "0";
+										}
+										/***************************************/
+					
+										if(!isset($node->field_last_updated_by_user['und'][0]['value'])){
+											$node->field_last_updated_by_user['und'][0]['value'] = $editedHolder;
+										}elseif($node->field_last_updated_by_user['und'][0]['value'] != $editedHolder){
+											$node->field_last_updated_by_user['und'][0]['value'] = $editedHolder;
+										}
+
+
+										if(!isset($node->field_macunames_date['und'][0]['value'])){
+											$node->field_macunames_date['und'][0]['value'] = $date;
+										}else{
+											$node->field_macunames_date['und'][0]['value'] = $date;
+										}
+
+									/*Saving the node*/
+									$node->log = "Updated with Manual Update (in module) - " . date("F j, Y, g:i a");					
+									node_save($node);
+							
+								}  /*closing bracket for - foreach($sxe->xpath('//xml/OUData/Staff/Member') as $item) */	
+							
+							
+							
+							}
+						}
+					}
+				}
+			}
+		$creationoutput = $creationoutput .'<br><br><br><br><a href="' . $GLOBALS['base_path'] . '">Go Back</a>';
+		print $creationoutput;
+		cache_clear_all(null, 'cache_views');
+		drupal_set_message('cache flushed. - after Update');
+			
+} /*closing Bracket for the Function*/
+
+/****************************************************************************************************************/
+/**************************************Delete all staff who are not in the XML***********************************/
+
+
+function deleteStaff(){
+	$creationoutput = "Updating Staff from: <b>" . variable_get('mctstaffupdater_xmlurl', '') . '</b><br/><br>';
+	
+		$type = "staff_page"; // machine name for Basic Page
+		$nodes = node_load_multiple(array(), array('type' => $type)); 
+		$counter = 0;
+		$sxe2 = simplexml_load_file(variable_get('mctstaffupdater_xmlurl', ''));
+			
+		$xmlArray = array();
+		$xmlArray2 = array();
+		$xmlArray3 = array();
+		$nodeArray = array();
+		$nodeArray2 = array();	
+
+			foreach($sxe2->xpath('//xml/OUData/Staff/Member') as $item) {
+				array_push($xmlArray, array($item->oucu,$item->UNID, $item->URL_Key, (string)$item->LastUpdate));
+			}
+
+			foreach($sxe2->xpath('//xml/OUData/Staff/Member') as $item) {
+				array_push($xmlArray2, (string)$item->oucu);
+			}
+			foreach($sxe2->xpath('//xml/OUData/Staff/Member') as $item) {
+				array_push($xmlArray3, (string)$item->UNID);
+			}
+
+			foreach($nodes as $node){
+				$jack = array($node->title, $node->nid, $node->field_unid['und'][0]['value']);
+				array_push($nodeArray, $jack);
+			}
+			foreach($nodes as $node){
+				array_push($nodeArray2, $node->title);
+			}
+						
+                       
+	foreach($nodeArray as $createStaff){
+
+		if(trim($createStaff[0]) != ""){
+			if(!in_array(trim($createStaff[0]), $xmlArray2 )){
+				$creationoutput = $creationoutput . $createStaff[0] . ' - ' . $createStaff[1];
+				$creationoutput = $creationoutput . '<br>';
+
+				$node = node_load($createStaff[1]);
+				$node->status = 0;
+				$node->log = "Updated with Delete option (Unpublished) - " . date("F j, Y, g:i a");					
+					//node_save($node);				
+
+				
+				node_delete($createStaff[1]);
+			}
+
+			if(!in_array(trim($createStaff[2]), $xmlArray3 )){
+				$creationoutput = $creationoutput . $createStaff[0] . ' - ' . $createStaff[1] . ' - ' . $createStaff[2];
+				$creationoutput = $creationoutput . '<br>';
+				
+				$node = node_load($createStaff[1]);
+				$node->status = 0;
+				$node->log = "Updated with Delete option (Unpublished) - " . date("F j, Y, g:i a");					
+					//node_save($node);	
+
+
+				node_delete($createStaff[1]);
+			}
+		}
+	}
+	
+	$creationoutput = $creationoutput .'<br><br><br><br><a href="' . $GLOBALS['base_path'] . '">Go Back</a>';
+	print $creationoutput;
+		cache_clear_all(null, 'cache_views');
+		drupal_set_message('cache flushed. - after delete');
+}
+
+
+
+
+
+?>
